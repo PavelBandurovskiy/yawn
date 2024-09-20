@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Игра{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="video-container">
+        <div class="video left">
+            <video id="localVideo" autoplay playsinline muted></video>
+        </div>
+        <div class="video right">
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+    </div>
+    <div id="mergedVideoElement" class="video-center">
+        <video id="mergedVideo" autoplay style="display: none;"></video>
+    </div>
+    <button id="startButton" class="login-button">Начать Игру</button>
+    <!-- Всплывающее окно -->
+    <div id="popup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background-color: white; padding: 20px; border: 1px solid black;">
+        <p id="popupMessage"></p>
+        <button onclick="closePopup()">Закрыть</button>
+    </div>
+
+    <div id="popupend" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background-color: white; padding: 20px; border: 1px solid black;">
+        <p id="popupMessageEnd"></p>
+        <button onclick="closePopupEnd()">Закрыть</button>
+    </div>
+ <style>
+    .content {
+        position: relative;
+        width: 100%;
+        max-width: 800px; /* Примерная максимальная ширина контейнера */
+        margin: 0 auto; /* Центрирование контейнера */
+        padding: 20px;
+    }
+
+    .video-container {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .video {
+        width: 320px; /* Фиксированная ширина для видео */
+        height: 240px; /* Фиксированная высота для видео */
+        position: relative;
+        overflow: hidden; /* Обрезаем лишнее, если размеры контейнера меньше видео */
+    }
+
+    .left {
+        order: 1; /* Первый элемент слева */
+    }
+
+    .right {
+        order: 2; /* Второй элемент справа */
+    }
+
+    .video-center {
+        width: 100%;
+        text-align: center;
+    }
+
+    video {
+        width: 100%;
+        height: auto; /* Автоматическая высота для сохранения соотношения сторон */
+        max-width: 100%; /* Не дает видео выходить за пределы родительского блока */
+        display: block; /* Убираем пробелы снизу */
+    }
+
+    .login-button {
+        display: block;
+        margin: 0 auto; /* Центрирование кнопки */
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    /* Стили для всплывающего окна */
+    #popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 20px;
+        border: 1px solid black;
+        z-index: 1000; /* Выше всех остальных элементов */
+    }
+</style>
+
+
+        <script>
+
+    function showPopup() {
+        document.getElementById('popup').style.display = 'block';
+    }
+
+    function showPopupEnd() {
+        document.getElementById('popupend').style.display = 'block';
+    }
+
+    function closePopup() {
+        document.getElementById('popup').style.display = 'none';
+    }
+
+    function closePopupEnd() {
+        document.getElementById('popupend').style.display = 'none';
+        redirectToUserProfile();
+    }
+
+    function redirectToUserProfile() {
+        window.location.href = userHref;
+    }
+
+    const roomName = "{{ room_name }}";
+    const userId = "{{ user_id }}";
+    console.log(userId);
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const mergedVideo = document.getElementById('mergedVideo');
+    const startButton = document.getElementById('startButton');
+    const popupMessage = document.getElementById('popupMessage');
+    const popupMessageEnd =document.getElementById('popupMessageEnd');
+    let userHref = '/user_profile/'+userId+'/'
+
+    let ws;
+    let localStream;
+    let peerConnection;
+    let isInitiator = false;
+    let iceCandidateQueue = [];
+    let remoteStream = new MediaStream();
+    let mergedVideoUrl = null;
+    let base64Video = null;
+    let trackingYawning = true;
+
+    // Функция для преобразования base64 в массив байтов
+    function base64ToUint8Array(base64) {
+        const binaryString = window.atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+    }
+
+    // Получение и декодирование видео
+    fetch('/api/video/mergeVideos')
+        .then(response => response.json())
+        .then(data => {
+            if (data.video) {
+                base64Video = data.video;
+                console.log("Закодированное видео в base64: ", base64Video);
+                popupMessage.innerHTML = `Видео сгенерировано, можете начинать игру!`;
+                showPopup();  // Показываем всплывающее окно после получения видео
+            } else if (data.error) {
+                console.error(data.error);
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка при получении или кодировании видео: ", error);
+        });
+
+    const constraints = {
+        video: true,
+        audio: false
+    };
+
+    const configuration = {
+        iceServers: [{
+            urls: 'stun:stun.l.google.com:19302'
+        }]
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+            localStream = stream;
+            localVideo.srcObject = stream;
+
+            createPeerConnection();
+            connectWebSocket();
+        })
+        .catch(error => {
+            console.error('Error accessing media devices.', error);
+        });
+
+    startButton.addEventListener('click', () => {
+        closePopup();  // Закрываем всплывающее окно
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({'type': 'ready', 'user_id': userId}));
+        }
+    });
+
+    function connectWebSocket() {
+        if (window.location.protocol === 'https:') {
+            ws = new WebSocket('wss://' + window.location.host + '/ws/room/' + roomName + '/');
+        } else {
+            ws = new WebSocket('ws://' + window.location.host + '/ws/room/' + roomName + '/');
+        }
+
+        ws.onopen = function() {
+            console.log('WebSocket connection opened');
+        };
+
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log('Received message:', data);
+
+            if (data.type === 'offer') {
+                if (!isInitiator) {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer))
+                        .then(() => peerConnection.createAnswer())
+                        .then(answer => peerConnection.setLocalDescription(answer))
+                        .then(() => {
+                            ws.send(JSON.stringify({
+                                'type': 'answer',
+                                'answer': peerConnection.localDescription,
+                                'user_id': userId
+                            }));
+                            processIceCandidateQueue();
+                        })
+                        .catch(error => {
+                            console.error('Error handling offer:', error);
+                        });
+                }
+                const videoBytes = base64ToUint8Array(data.videoref);
+
+                // Создаем Blob из Uint8Array
+                const blob = new Blob([videoBytes], { type: 'video/mp4' });
+
+                const videoUrl = URL.createObjectURL(blob);
+
+                mergedVideo.src = videoUrl;
+                mergedVideo.style.display = 'block';
+                console.log("Видео урл", videoUrl);
+                console.log("В оффере ", data.videoref);
+
+            } else if (data.type === 'answer') {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer))
+                    .then(() => {
+                        processIceCandidateQueue();
+                    })
+                    .catch(error => {
+                        console.error('Error handling answer:', error);
+                    });
+            } else if (data.type === 'candidate') {
+                const candidate = new RTCIceCandidate(data.candidate);
+                if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+                    peerConnection.addIceCandidate(candidate)
+                        .catch(e => console.error('Error adding received ICE candidate', e));
+                } else {
+                    iceCandidateQueue.push(candidate);
+                }
+            } else if (data.type === 'ready') {
+                if (!isInitiator) {
+                    isInitiator = true;
+                    if (base64Video === null){
+                        peerConnection.createOffer()
+                        .then(offer => peerConnection.setLocalDescription(offer))
+                        .then(function() {
+                            ws.send(JSON.stringify({
+                                'type': 'offer',
+                                'offer': peerConnection.localDescription,
+                                'user_id': userId
+                            }));
+                        })
+                        .catch(error => {
+                            console.error('Error creating offer:', error);
+                        });
+                    }else{
+
+                    peerConnection.createOffer()
+                        .then(offer => peerConnection.setLocalDescription(offer))
+                        .then(function() {
+                            ws.send(JSON.stringify({
+                                'type': 'offer',
+                                'offer': peerConnection.localDescription,
+                                'videoref': base64Video,
+                                'user_id': userId
+                            }));
+                        })
+                        .catch(error => {
+                            console.error('Error creating offer:', error);
+                        });
+                }
+            }
+
+                const videoBytes = base64ToUint8Array(base64Video);
+                const blob = new Blob([videoBytes], { type: 'video/mp4' });
+                const videoUrl = URL.createObjectURL(blob);
+                mergedVideo.src = videoUrl;
+                mergedVideo.style.display = 'block';
+                console.log("В Реди ", videoUrl);
+            } else if (data.type === 'emotion') {
+                console.log('Emotion detected:', data.yawning);
+                if (data.yawning) {
+                    console.log('results/${win}/${lose}')
+                    popupMessageEnd.innerHTML = `Игрок ${data.user_id} зевнул!`;
+                    showPopupEnd();
+                    stopVideoProcessing();
+                    mergedVideo.pause()
+                    trackingYawning = false; // Останавливаем отслеживание зевания
+                    if (data.user_id == userId){
+                        const win = data.winner_id;
+                        const lose = data.loser_id;
+                        console.log('константа ' , win);
+                        console.log('Победил ' + win);
+                        var zapros = '/results/' + win + '/' + lose;
+                        console.log('ZAPROS', zapros);
+
+                        fetch(zapros);
+                    }
+                }
+            }
+        };
+
+        ws.onclose = function() {
+            console.log('WebSocket connection closed');
+        };
+
+        ws.onerror = function(e) {
+            console.log('WebSocket error:', e.message);
+        };
+
+        // Отправка кадров на сервер каждую секунду
+        setInterval(() => {
+            if (localStream && trackingYawning) { // Проверяем флаг отслеживания
+                const canvas = document.createElement('canvas');
+                canvas.width = localVideo.videoWidth;
+                canvas.height = localVideo.videoHeight;
+                canvas.getContext('2d').drawImage(localVideo, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(blob => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64data = reader.result.split(',')[1];
+                        ws.send(JSON.stringify({'type': 'frame', 'frame': base64data, 'user_id': userId}));
+                    };
+                    reader.readAsDataURL(blob);
+                }, 'image/jpeg');
+            }
+        }, 1000); // Отправляем кадры каждую секунду
+    }
+
+    function stopVideoProcessing() {
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+        ws.close();
+    }
+
+    function createPeerConnection() {
+        peerConnection = new RTCPeerConnection(configuration);
+
+        peerConnection.ontrack = event => {
+            if (event.streams && event.streams[0]) {
+                remoteStream = event.streams[0];
+                remoteVideo.srcObject = remoteStream;
+            }
+        };
+
+        peerConnection.onicecandidate = event => {
+            if (event.candidate && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    'type': 'candidate',
+                    'candidate': event.candidate,
+                    'user_id': userId
+                }));
+            }
+        };
+
+        peerConnection.oniceconnectionstatechange = () => {
+            if (peerConnection.iceConnectionState === 'failed') {
+                console.error('ICE connection failed.');
+            } else if (peerConnection.iceConnectionState === 'connected') {
+                console.log('ICE connection state is connected');
+            } else if (peerConnection.iceConnectionState === 'completed') {
+                console.log('ICE connection state is completed');
+            } else if (peerConnection.iceConnectionState === 'disconnected') {
+                console.log('ICE connection state is disconnected');
+            } else if (peerConnection.iceConnectionState === 'closed') {
+                console.log('ICE connection state is closed');
+            }
+        };
+
+        if (localStream) {
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+        }
+    }
+
+    function processIceCandidateQueue() {
+        while (iceCandidateQueue.length > 0) {
+            const candidate = new RTCIceCandidate(iceCandidateQueue.shift());
+            peerConnection.addIceCandidate(candidate)
+                .catch(e => console.error('Error adding queued ICE candidate', e));
+        }
+    }
+</script>
+
+    </div>
+{% endblock %}

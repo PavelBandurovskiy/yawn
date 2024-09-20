@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль пользователя{% endblock %}
+
+{% block content %}
+<style>
+.profile-section, .actions-section, .friends-preview .game-stats-section{
+    margin-bottom: 50px;
+}
+
+.actions {
+    margin-top: 20px;
+}
+
+.actions form {
+    display: inline-block;
+    margin-right: 10px;
+}
+
+button {
+    padding: 5px 10px;
+    background-color: var(--red);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: black;
+}
+</style>
+
+<div class="profile-section">
+    <h1>Профиль пользователя</h1>
+    <p>ID: {{ user.id }}</p>
+    <p>Имя: {{ user.name }}</p>
+    <p>Email: {{ user.email }}</p>
+
+    {% if user.id != current_user_id %}
+    <div class="actions">
+        <form method="get" action="{% url 'play_game' %}">
+            <button type="submit">Играть</button>
+        </form>
+        {% if is_friend %}
+        <form method="post" action="{% url 'delete_friend' user.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit">Удалить</button>
+        </form>
+        {% else %}
+        <form method="post" action="{% url 'add_friend' user.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit">Добавить</button>
+        </form>
+        {% endif %}
+    </div>
+    {% else %}
+    <h2>Друзья</h2>
+    {% if friends %}
+    <ul>
+        {% for friend in friends %}
+        <li>
+            <a href="{% url 'user_profile' friend.id %}">{{ friend.name }}</a>
+            <div class="friend-actions">
+                <form method="get" action="{% url 'play_game' %}">
+                    <button type="submit">Играть</button>
+                </form>
+                <form method="post" action="{% url 'delete_friend' friend.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit">Удалить</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'friends_and_users' %}" class="login-button">Посмотреть всех</a>
+    {% else %}
+    <p>Друзей еще нет.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="game-stats-section">
+    <h2>Статистика игр</h2>
+    <div id="game-stats"></div>
+</div>
+
+<script>
+    const userId = {{ user.id }};
+    const currentUserId = {{ current_user_id }};
+    const gameStatsDiv = document.getElementById('game-stats');
+
+    function fetchGameStats(url) {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    gameStatsDiv.innerHTML = `<p>${data.error}</p>`;
+                } else {
+                    gameStatsDiv.innerHTML = `
+                        <p>Количество игр: ${data.games !== undefined ? data.games : '0'}</p>
+                        <p>Победы: ${data.win !== undefined ? data.win : '0'}</p>
+                        <p>Процент побед: ${data.winRate !== "NaN" ? (data.winRate * 100).toFixed(2) : '0'}%</p>
+                    `;
+                }
+            })
+            .catch(error => {
+                gameStatsDiv.innerHTML = `<p>Ошибка при получении статистики игр: ${error}</p>`;
+            });
+    }
+
+    if (userId === currentUserId) {
+        fetchGameStats('/api/users/games/info/');
+    } else {
+        fetchGameStats(`/api/users/games/info/${userId}/`);
+    }
+</script>
+{% endblock %}

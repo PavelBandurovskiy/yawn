@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Мои друзья и пользователи{% endblock %}
+
+{% block content %}
+<div class="content">
+    <h1>Мои друзья</h1>
+    <div class="search-container">
+        <form method="get" action="{% url 'friends_and_users' %}">
+            <div class="field">
+                <input class="input-field" type="text" name="search" placeholder="Введите ник" value="{{ request.GET.search }}">
+                <button type="submit" class="search-button">Найти</button>
+            </div>
+        </form>
+    </div>
+
+    {% if search %}
+        <h2>Результаты поиска для "{{ search }}"</h2>
+        <div class="friends-section">
+            <h3>Друзья</h3>
+            {% if friends %}
+                <ul class="friends-list">
+                {% for friend in friends %}
+                    <li>
+                        <a href="{% url 'user_profile' friend.id %}">{{ friend.name }}</a>
+                        <div class="friend-actions">
+                            <form method="get" action="{% url 'play_game' %}">
+                                <button type="submit">Играть</button>
+                            </form>
+                            <form method="post" action="{% url 'delete_friend' friend.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit">Удалить</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>Нет друзей с таким ником.</p>
+            {% endif %}
+        </div>
+
+        <div class="global-search-section">
+            <h3>Глобальный поиск</h3>
+            {% if users %}
+                <ul class="users-list">
+                {% for user in users %}
+                    <li>
+                        <a href="{% url 'user_profile' user.id %}">{{ user.name }}</a>
+                        <div class="user-actions">
+                            <form method="post" action="{% url 'add_friend' user.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit">Добавить</button>
+                            </form>
+                            <form method="get" action="{% url 'play_game' %}">
+                                <button type="submit">Играть</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>Нет пользователей с таким ником.</p>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="all-friends-section">
+            <h2>Список всех друзей</h2>
+            {% if friends %}
+                <ul class="friends-list">
+                {% for friend in friends %}
+                    <li>
+                        <a href="{% url 'user_profile' friend.id %}">{{ friend.name }}</a>
+                        <div class="friend-actions">
+                            <form method="get" action="{% url 'play_game' %}">
+                                <button type="submit">Играть</button>
+                            </form>
+                            <form method="post" action="{% url 'delete_friend' friend.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit">Удалить</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>Список друзей пуст. Найдите друга:</p>
+            {% endif %}
+        </div>
+
+        <div class="all-users-section">
+            <h2>Все пользователи</h2>
+            <ul class="users-list">
+            {% for user in users %}
+                <li>
+                    <a href="{% url 'user_profile' user.id %}">{{ user.name }}</a>
+                    <div class="user-actions">
+                        <form method="post" action="{% url 'add_friend' user.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit">Добавить</button>
+                        </form>
+                        <form method="get" action="{% url 'play_game' %}">
+                            <button type="submit">Играть</button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

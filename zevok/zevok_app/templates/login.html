@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="hello-text">
+        <h1>Войти в аккаунт</h1>
+        <form method="post" class="form">
+            {% csrf_token %}
+            <div class="field">
+                <label for="email" class="email-label">Электронная почта</label>
+                <input type="email" id="email" name="email" class="input-field" placeholder="Введите вашу электронную почту" required>
+            </div>
+            <div class="field">
+                <label for="password" class="password-label">Пароль</label>
+                <input type="password" id="password" name="password" class="input-field" placeholder="Введите ваш пароль" required>
+            </div>
+            <button type="submit" class="login-button">Войти</button>
+        </form>
+
+        <div class="auth">
+            <p class="text-btn">Еще нет аккаунта?</p>
+            <a href="{% url 'register' %}" class="sign-in">Зарегистрироваться →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

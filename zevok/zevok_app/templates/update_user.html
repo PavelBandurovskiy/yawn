@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Обновить пользователя{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="hello-text">
+        <h1>Обновить данные пользователя</h1>
+        <h2>Измените только те данные которые вы хотите</h2>
+        <form method="post" class="form">
+            {% csrf_token %}
+            <div class="field">
+                <label for="email" class="email-label">Новая электронная почта</label>
+                <input type="email" id="email" name="newEmail" class="input-field" placeholder="Введите вашу электронную почту">
+            </div>
+            <div class="field">
+                <label for="name" class="name-label">Новое имя</label>
+                <input type="text" id="name" name="newName" class="input-field" placeholder="Введите ваше имя">
+            </div>
+            <div class="field">
+                <label for="password" class="password-label">Новый пароль</label>
+                <input type="password" id="password" name="newPassword" class="input-field" placeholder="Введите ваш пароль">
+            </div>
+            <button type="submit" class="login-button">Обновить</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

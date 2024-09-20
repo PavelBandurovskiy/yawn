@@ -1,0 +1,98 @@
+
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Montserrat', sans-serif;
+    height: 100px;
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 0 0px;
+    box-sizing: border-box;
+}
+
+.logo-container {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    height: 100%; /* Логотип будет растягиваться вместе с контейнером */
+    max-height: 150px;
+}
+
+.button-bold {
+    color: black;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.button-bold:hover {
+    text-decoration: underline;
+}
+
+.menu-toggle {
+    font-size: 30px;
+    cursor: pointer;
+}
+
+.dropdown-menu {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    right: 20px;
+    top: 150px;
+    background-color: white;
+    box-shadow: 0 8px 10px rgba(0,0,0,0.1);
+    padding: 10px 0;
+    width: 200px;
+}
+
+.dropdown-menu a {
+    padding: 10px 20px;
+    text-decoration: none;
+    color: black;
+    display: block;
+}
+
+.dropdown-menu a:hover {
+    background-color: #f0f0f0;
+}
+
+@media (max-width: 768px) {
+    .logo {
+        max-height: 100px; /* Уменьшить логотип на меньших экранах */
+    }
+}
+
+
+
+<!--
+ Стили для body
+
+
+ .h1, .text {
+    font-family: 'Montserrat', sans-serif;
+    color: var(--black);
+}
+
+.h1 {
+    font-size: 40px;
+    font-weight: 400;
+    line-height: 72px;
+}
+
+.text {
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 45px;
+}
+ -->
+
+body, button, input, textarea {
+    font-family: 'Montserrat', sans-serif;
+}
+

@@ -1,0 +1,89 @@
+:root {
+    --white: #ffffff;
+    --black: #000000;
+    --red: #ff0000;
+}
+
+.content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.hello-text {
+    text-align: center;
+    width: 100%;
+}
+
+.h1 {
+    margin-bottom: 20px;
+}
+
+.component-1 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.frame-9, .frame-9-two {
+    margin-bottom: 15px;
+    width: 80%; /* Пример ширины, адаптируйте под свои нужды */
+}
+
+.input-field {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    box-sizing: border-box; /* Убедитесь, что padding не увеличивает размер поля */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.login-button {
+    padding: 10px 20px;
+    background-color:  var(--red);
+    /* color: var(--red); */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.email-label, .password-label {
+    font-size: 16px;
+    color: #333;
+}
+
+/* Убираем стандартные стили для input */
+.input-field:focus {
+    outline: none;
+    border-color: #666;
+}
+
+.login-button {
+    font-size: 30px;
+    font-weight: 400;
+    color: black;
+    padding: 10px 20px;
+    text-decoration: none;
+    background-color: #ffffff;
+    border: none;
+    cursor: pointer;
+}
+
+.login-button {
+    padding: 10px 20px;
+    background-color:  var(--red);
+    /* color: var(--red); */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+.frame-4{
+
+}

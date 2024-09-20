@@ -1,0 +1,63 @@
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Django App{% endblock %}</title>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/base-header.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base-footer.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script>
+        function toggleMenu() {
+            var menu = document.getElementById('dropdownMenu');
+            if (menu.classList.contains('show')) {
+                menu.classList.remove('show');
+                setTimeout(function() {
+                    menu.style.display = 'none';
+                }, 300); // match the duration of the transition
+            } else {
+                menu.style.display = 'flex';
+                setTimeout(function() {
+                    menu.classList.add('show');
+                }, 10); // small delay to trigger the transition
+            }
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <a href="{% url 'index' %}">
+                <img alt="Логотип" src="https://static.overlay-tech.com/assets/ae4233cc-d46a-4999-85a8-c72e8779d3bb.png" class="logo"/>
+            </a>
+        </div>
+        {% if request.session.user_id %}
+        <div class="menu-toggle" onclick="toggleMenu()">☰</div>
+        <nav class="dropdown-menu" id="dropdownMenu">
+            <a href="{% url 'user_profile' request.session.user_id %}">Мой профиль</a>
+            <a href="{% url 'friends_and_users' %}">Друзья</a>
+            <a href="{% url 'user_games' %}">История игр</a>
+            <a href="{% url 'update_user' %}">Изменить профиль</a>
+            <a href="{% url 'rules' %}">Правила игры</a>
+            <div class="logout-container">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button class="login-button" type="submit">Выйти</button>
+            </form>
+                </div>
+        </nav>
+        {% else %}
+        <a href="{% url 'login' %}" class="button-bold">Войти</a>
+        {% endif %}
+    </header>
+
+    <div class="wrapper">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    {% include "zevok_app/base-footer.html" %}
+</body>
+</html>
